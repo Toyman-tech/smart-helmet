@@ -1,5 +1,5 @@
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getDatabase } from "firebase/database";
+import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
+import { getDatabase, Database } from "firebase/database";
 
 const firebaseConfig = {
   // TODO: Replace with your Firebase config
@@ -12,6 +12,14 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase (singleton pattern)
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-export const db = getDatabase(app);
+// Initialize Firebase only on client-side
+let app: FirebaseApp | undefined;
+let db: Database | undefined;
+
+if (typeof window !== "undefined") {
+  // Only initialize on client-side
+  app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+  db = getDatabase(app);
+}
+
+export { db };

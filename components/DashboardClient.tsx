@@ -24,7 +24,7 @@ const MOCK_DATA: HelmetData = {
     isEmergency: false,
     alcohol_ppm: 45,
     isIntoxicated: false,
-    location: { lat: 6.45, lng: 3.38 }, // Example coordinates (Lagos, Nigeria based on prompt)
+    location: { lat: 6.45, lng: 3.38 },
     vitals: { battery: 85, connection: "Online" },
 };
 
@@ -33,7 +33,12 @@ export default function DashboardClient() {
     const [usingMock, setUsingMock] = useState(true);
 
     useEffect(() => {
-        // Try connecting to Firebase
+        // Only try connecting to Firebase if db is available (client-side)
+        if (!db) {
+            console.log("Firebase not initialized (SSR), using mock data.");
+            return;
+        }
+
         const helmetRef = ref(db, "helmets/helmet_01");
 
         const unsubscribe = onValue(helmetRef, (snapshot) => {
@@ -41,23 +46,20 @@ export default function DashboardClient() {
                 setData(snapshot.val());
                 setUsingMock(false);
             } else {
-                // Fallback or keep mock if no data found
                 console.log("No data available, using mock.");
             }
         }, (error) => {
             console.error("Firebase read failed", error);
-            // Keep mock data on error
         });
 
         return () => unsubscribe();
     }, []);
 
-    // Helper function to simulate data changes for demo purposes
     const simulateEmergency = () => {
         setData(prev => ({
             ...prev,
             isEmergency: !prev.isEmergency,
-            alcohol_ppm: prev.isEmergency ? 45 : 450, // Toggle alcohol too for effect
+            alcohol_ppm: prev.isEmergency ? 45 : 450,
             isIntoxicated: !prev.isEmergency
         }));
     };
