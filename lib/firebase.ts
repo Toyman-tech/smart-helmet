@@ -18,8 +18,13 @@ let db: Database | undefined;
 
 if (typeof window !== "undefined") {
   // Only initialize on client-side
-  app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-  db = getDatabase(app);
+  // Validate config
+  if (firebaseConfig.projectId) {
+    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+    db = getDatabase(app);
+  } else {
+    console.warn("Firebase Config missing (projectId). Falling back to mock data.");
+  }
 }
 
 export { db };
