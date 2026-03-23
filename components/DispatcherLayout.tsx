@@ -46,13 +46,13 @@ export default function DispatcherLayout({ children }: { children: React.ReactNo
                         </div>
 
                         <div className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-widest mt-8 mb-4">Operations</div>
-                        <Link href="#" className="flex items-center gap-3 p-3 rounded-lg text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
+                        <Link href="/dashboard" className="flex items-center gap-3 p-3 rounded-lg text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
+                            <Activity className="h-5 w-5" /> Telemetry Dashboard
+                        </Link>
+                        <Link href="/riders" className="flex items-center gap-3 p-3 rounded-lg text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
                             <Users className="h-5 w-5" /> Riders List
                         </Link>
-                        <Link href="#" className="flex items-center gap-3 p-3 rounded-lg text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
-                            <Activity className="h-5 w-5" /> Analytics
-                        </Link>
-                        <Link href="#" className="flex items-center gap-3 p-3 rounded-lg text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
+                        <Link href="/settings" className="flex items-center gap-3 p-3 rounded-lg text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
                             <Settings className="h-5 w-5" /> Settings
                         </Link>
                     </nav>

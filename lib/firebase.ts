@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getDatabase, Database } from "firebase/database";
+import { getFirestore, Firestore } from "firebase/firestore";
 
 const firebaseConfig = {
   // TODO: Replace with your Firebase config
@@ -15,6 +16,7 @@ const firebaseConfig = {
 // Initialize Firebase only on client-side
 let app: FirebaseApp | undefined;
 let db: Database | undefined;
+let firestore: Firestore | undefined;
 
 if (typeof window !== "undefined") {
   // Only initialize on client-side
@@ -22,9 +24,10 @@ if (typeof window !== "undefined") {
   if (firebaseConfig.projectId) {
     app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
     db = getDatabase(app);
+    firestore = getFirestore(app);
   } else {
     console.warn("Firebase Config missing (projectId). Falling back to mock data.");
   }
 }
 
-export { db };
+export { db, firestore };
