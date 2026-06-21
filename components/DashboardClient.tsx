@@ -251,9 +251,6 @@ export default function DashboardClient() {
 
                     {/* LEFT: Map */}
                     <div className="h-[400px] lg:h-auto lg:col-span-8 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm flex flex-col overflow-hidden relative shrink-0">
-                        <div className="absolute top-4 left-4 z-[500] bg-white/90 dark:bg-slate-900/90 backdrop-blur p-2 rounded-lg border border-gray-200 dark:border-slate-700 shadow">
-                            <h3 className="text-xs font-bold uppercase text-gray-500 tracking-wider">Live GIS Tracking</h3>
-                        </div>
                         <div className="flex-1 relative z-0">
                             <LiveMap location={{lat: telemetry.lat, lng: telemetry.lng}} breadcrumb={breadcrumb} />
                         </div>
