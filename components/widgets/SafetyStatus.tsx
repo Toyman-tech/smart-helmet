@@ -10,9 +10,9 @@ export function SafetyStatus({ lastHeartbeatTime }: ConnectionStatusProps) {
 
     useEffect(() => {
         const checkStatus = () => {
-            // Heartbeat happens every 10s, so allow 15s before calling it offline
+            // Heartbeat happens every 45s, so allow 60s before calling it offline
             const now = Date.now();
-            setIsOnline(now - lastHeartbeatTime < 15000);
+            setIsOnline(now - lastHeartbeatTime < 60000);
         };
         
         checkStatus();

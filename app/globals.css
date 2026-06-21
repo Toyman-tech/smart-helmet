@@ -24,3 +24,41 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Premium Leaflet & Map Visual Customizations */
+.animated-polyline {
+  stroke-dasharray: 8 12;
+  animation: leaflet-dash-flow 25s linear infinite;
+}
+
+@keyframes leaflet-dash-flow {
+  to {
+    stroke-dashoffset: -1000;
+  }
+}
+
+/* Custom leaflet popup overrides for premium dark/glass look */
+.leaflet-popup-content-wrapper {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(226, 232, 240, 0.8) !important;
+  backdrop-filter: blur(8px) !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1) !important;
+}
+
+.dark .leaflet-popup-content-wrapper {
+  background: rgba(15, 23, 42, 0.9) !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(51, 65, 85, 0.8) !important;
+  color: #f8fafc !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
+}
+
+.leaflet-popup-tip {
+  background: rgba(255, 255, 255, 0.9) !important;
+}
+
+.dark .leaflet-popup-tip {
+  background: rgba(15, 23, 42, 0.9) !important;
+  border: 1px solid rgba(51, 65, 85, 0.8) !important;
+}

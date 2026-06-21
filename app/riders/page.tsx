@@ -21,7 +21,8 @@ export default function RidersPage() {
         });
 
         const checkStatus = () => {
-             setIsOnline(Date.now() - lastHeartbeat < 15000);
+             // Heartbeat happens every 45s, so allow 60s before calling it offline
+             setIsOnline(Date.now() - lastHeartbeat < 60000);
         };
         const interval = setInterval(checkStatus, 2000);
         return () => {

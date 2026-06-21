@@ -83,6 +83,10 @@ export default function DashboardClient() {
                     lng: parseFloat(val.lng) || prev.lng,
                     timestamp: val.timestamp || prev.timestamp
                 }));
+                // Reset request_data to false once live data is received/synced
+                if (db) {
+                    set(ref(db, "helmet/commands/request_data"), false);
+                }
             }
         });
 
@@ -252,7 +256,7 @@ export default function DashboardClient() {
                     {/* LEFT: Map */}
                     <div className="h-[400px] lg:h-auto lg:col-span-8 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm flex flex-col overflow-hidden relative shrink-0">
                         <div className="flex-1 relative z-0">
-                            <LiveMap location={{lat: telemetry.lat, lng: telemetry.lng}} breadcrumb={breadcrumb} />
+                            <LiveMap location={{lat: telemetry.lat, lng: telemetry.lng}} breadcrumb={breadcrumb} alertType={activeAlertType} />
                         </div>
                         <div className="p-3 bg-white dark:bg-slate-800 border-t border-gray-200 dark:border-slate-700 flex justify-between items-center text-xs">
                             <div className="font-mono text-gray-500">Device Clock: {telemetry.timestamp.split('T').join(' ')}</div>
