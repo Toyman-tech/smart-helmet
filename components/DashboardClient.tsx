@@ -14,7 +14,8 @@ import { AlertBanner } from "./incident/AlertBanner";
 import { IncidentTimer } from "./incident/IncidentTimer";
 import { ContactPanel } from "./incident/ContactPanel";
 import { DispatcherNotes } from "./incident/DispatcherNotes";
-import { ExternalLink, RefreshCw, CheckCircle2 } from "lucide-react";
+import { ExternalLink, RefreshCw, CheckCircle2, Volume2, VolumeX, Bell, BellOff, Play, Square, Settings } from "lucide-react";
+import { SirenPlayer, requestNotificationPermission, sendDesktopNotification } from "@/lib/audio";
 
 // Dynamically import the map to disable SSR
 const LiveMap = dynamic(() => import("./map/LiveMap"), {
@@ -43,8 +44,15 @@ export default function DashboardClient() {
     const [isSaving, setIsSaving] = useState(false);
     const [successMsg, setSuccessMsg] = useState("");
 
-    // Audio
-    const audioRef = useRef<HTMLAudioElement | null>(null);
+    // Alert Settings States
+    const [audioAlertsEnabled, setAudioAlertsEnabled] = useState(true);
+    const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+    const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
+    const [showSettingsPopover, setShowSettingsPopover] = useState(false);
+    const [isTestSirenPlaying, setIsTestSirenPlaying] = useState(false);
+
+    // Track last notified alert type to avoid duplicate notifications
+    const lastAlertTypeRef = useRef<"CRASH" | "INTOXICATION" | null>(null);
 
     useEffect(() => {
         if (!db) return;
@@ -123,20 +131,52 @@ export default function DashboardClient() {
     // Crash takes priority
     const activeAlertType = isEmergency ? "CRASH" : isIntoxicated ? "INTOXICATION" : null;
 
+    // Sync Notification Permission state on mount
     useEffect(() => {
-        if (activeAlertType) {
-            if (!audioRef.current) {
-                audioRef.current = new Audio('/siren.mp3'); 
-                audioRef.current.loop = true;
-            }
-            audioRef.current.play().catch(e => console.log("Audio play blocked", e));
+        if (typeof window !== 'undefined' && 'Notification' in window) {
+            setNotificationPermission(Notification.permission);
+            setNotificationsEnabled(Notification.permission === 'granted');
+        }
+    }, []);
+
+    // Sync siren audio player with alert state
+    useEffect(() => {
+        if (activeAlertType && audioAlertsEnabled) {
+            // Emergency alerts override and stop test siren automatically
+            setIsTestSirenPlaying(false);
+            SirenPlayer.start(activeAlertType);
         } else {
-            if (audioRef.current) {
-                audioRef.current.pause();
-                audioRef.current.currentTime = 0;
+            // Only stop if the player is currently playing a real telemetry alarm
+            if (!isTestSirenPlaying) {
+                SirenPlayer.stop();
             }
         }
-    }, [activeAlertType]);
+        return () => {
+            SirenPlayer.stop();
+        };
+    }, [activeAlertType, audioAlertsEnabled, isTestSirenPlaying]);
+
+    // Handle desktop notifications on emergency alerts
+    useEffect(() => {
+        if (activeAlertType && activeAlertType !== lastAlertTypeRef.current) {
+            if (notificationsEnabled) {
+                const title = activeAlertType === 'CRASH' 
+                    ? '⚠️ HELMET CRASH DETECTED!' 
+                    : '🍺 RIDER INTOXICATION ALERT!';
+                
+                const body = activeAlertType === 'CRASH'
+                    ? `Critical emergency! Impact detected on rider's helmet. GPS: ${telemetry.lat.toFixed(6)}, ${telemetry.lng.toFixed(6)}`
+                    : `Sobriety threshold breached. High alcohol level detected on safety helmet telemetry.`;
+
+                sendDesktopNotification(title, {
+                    body,
+                    requireInteraction: true,
+                    tag: 'helmet-emergency-alert'
+                });
+            }
+        }
+        lastAlertTypeRef.current = activeAlertType;
+    }, [activeAlertType, notificationsEnabled, telemetry.lat, telemetry.lng]);
 
     const requestLiveData = () => {
         if (!db) return;
@@ -196,6 +236,141 @@ export default function DashboardClient() {
                         >
                             <RefreshCw className="h-4 w-4" /> Sync Sensor Data
                         </button>
+                        
+                        {/* Alert settings dropdown */}
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowSettingsPopover(!showSettingsPopover)}
+                                className={`px-4 py-3 sm:py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition border w-full sm:w-auto ${
+                                    showSettingsPopover
+                                        ? "bg-slate-200 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white"
+                                        : "bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800"
+                                }`}
+                            >
+                                <Settings className="h-4 w-4" /> Settings
+                                {(audioAlertsEnabled || (notificationsEnabled && notificationPermission === 'granted')) ? (
+                                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                ) : (
+                                    <span className="h-2 w-2 rounded-full bg-slate-400"></span>
+                                )}
+                            </button>
+
+                            {showSettingsPopover && (
+                                <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-slate-950 border border-gray-200 dark:border-slate-800 rounded-xl shadow-2xl z-[1002] p-4 flex flex-col gap-4 animate-in fade-in slide-in-from-top-2 duration-150">
+                                    <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-2">
+                                        <h3 className="font-bold text-xs text-slate-800 dark:text-slate-200">Alert Dispatch Settings</h3>
+                                        <button 
+                                            onClick={() => setShowSettingsPopover(false)}
+                                            className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                                        >
+                                            Close
+                                        </button>
+                                    </div>
+
+                                    {/* Audio Siren Toggle */}
+                                    <div className="flex items-center justify-between gap-4">
+                                        <div className="flex flex-col gap-0.5">
+                                            <span className="text-xs font-bold flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+                                                {audioAlertsEnabled ? <Volume2 className="h-3.5 w-3.5 text-blue-500" /> : <VolumeX className="h-3.5 w-3.5 text-slate-400" />}
+                                                Audio Siren
+                                            </span>
+                                            <span className="text-[10px] text-slate-400">Synthesizes emergency siren audio</span>
+                                        </div>
+                                        <button
+                                            onClick={() => setAudioAlertsEnabled(!audioAlertsEnabled)}
+                                            className={`w-10 h-6 flex items-center rounded-full p-0.5 transition-colors ${
+                                                audioAlertsEnabled ? "bg-blue-600 justify-end" : "bg-slate-300 dark:bg-slate-800 justify-start"
+                                            }`}
+                                        >
+                                            <span className="w-5 h-5 bg-white rounded-full shadow-md"></span>
+                                        </button>
+                                    </div>
+
+                                    {/* Desktop Notification Control */}
+                                    <div className="flex items-center justify-between gap-4">
+                                        <div className="flex flex-col gap-0.5">
+                                            <span className="text-xs font-bold flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+                                                {notificationsEnabled && notificationPermission === 'granted' ? (
+                                                    <Bell className="h-3.5 w-3.5 text-blue-500" />
+                                                ) : (
+                                                    <BellOff className="h-3.5 w-3.5 text-slate-400" />
+                                                )}
+                                                Desktop Alerts
+                                            </span>
+                                            <span className="text-[10px] text-slate-400">
+                                                {notificationPermission === 'granted' 
+                                                    ? 'Notifications allowed' 
+                                                    : notificationPermission === 'denied'
+                                                        ? 'Blocked by browser permissions'
+                                                        : 'Requires browser permission'}
+                                            </span>
+                                        </div>
+                                        
+                                        {notificationPermission === 'default' ? (
+                                            <button
+                                                onClick={async () => {
+                                                    const perm = await requestNotificationPermission();
+                                                    setNotificationPermission(perm);
+                                                    setNotificationsEnabled(perm === 'granted');
+                                                }}
+                                                className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-[10px] font-bold transition shadow-sm"
+                                            >
+                                                Request
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={() => {
+                                                    if (notificationPermission === 'granted') {
+                                                        setNotificationsEnabled(!notificationsEnabled);
+                                                    }
+                                                }}
+                                                disabled={notificationPermission === 'denied'}
+                                                className={`w-10 h-6 flex items-center rounded-full p-0.5 transition-colors ${
+                                                    notificationsEnabled && notificationPermission === 'granted'
+                                                        ? "bg-blue-600 justify-end"
+                                                        : "bg-slate-300 dark:bg-slate-800 justify-start cursor-not-allowed opacity-50"
+                                                }`}
+                                            >
+                                                <span className="w-5 h-5 bg-white rounded-full shadow-md"></span>
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {/* Test Siren Button */}
+                                    <div className="border-t border-gray-100 dark:border-slate-800 pt-3 flex flex-col gap-2">
+                                        <button
+                                            onClick={async () => {
+                                                await SirenPlayer.resume();
+                                                
+                                                if (isTestSirenPlaying) {
+                                                    SirenPlayer.stop();
+                                                    setIsTestSirenPlaying(false);
+                                                } else {
+                                                    SirenPlayer.start('TEST');
+                                                    setIsTestSirenPlaying(true);
+                                                }
+                                            }}
+                                            className={`px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition ${
+                                                isTestSirenPlaying
+                                                    ? "bg-red-500 hover:bg-red-600 text-white animate-pulse"
+                                                    : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+                                            }`}
+                                        >
+                                            {isTestSirenPlaying ? (
+                                                <>
+                                                    <Square className="h-3.5 w-3.5 fill-current" /> Stop Test Siren
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Play className="h-3.5 w-3.5 fill-current" /> Test Alert Siren
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
                         {activeAlertType && (
                             <button
                                 onClick={resolveIncident}
